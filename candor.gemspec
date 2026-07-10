@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ["leonid@svyatov.com"]
 
   spec.summary = "Turn a block or a callable into a real method with an honest signature."
-  spec.description = "Ruby's missing functools.wraps. Candor fabricates real methods from blocks and " \
+  spec.description = "Candor fabricates real methods from blocks and " \
                      "callables: same arity, same parameters, source_location pointing at your code, and " \
                      "allocation-free dispatch. Zero runtime dependencies."
   spec.homepage = "https://github.com/svyatov/candor"

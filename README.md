@@ -1,12 +1,10 @@
 # Candor
 
-[![Gem Version](https://img.shields.io/gem/v/candor)](https://rubygems.org/gems/candor)
-[![CI](https://github.com/svyatov/candor/actions/workflows/main.yml/badge.svg)](https://github.com/svyatov/candor/actions/workflows/main.yml)
-[![codecov](https://codecov.io/gh/svyatov/candor/branch/main/graph/badge.svg)](https://codecov.io/gh/svyatov/candor)
+[![Gem Version](https://img.shields.io/gem/v/candor)](https://rubygems.org/gems/candor) [![Codecov](https://img.shields.io/codecov/c/github/svyatov/candor)](https://app.codecov.io/gh/svyatov/candor) [![CI](https://github.com/svyatov/candor/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/svyatov/candor/actions?query=workflow%3ACI)
 
-**Ruby's missing `functools.wraps`.** Turn a block or a callable into a real method that reports the
-*body's* arity, the *body's* `parameters` and the *body's* `source_location`, and rejects a bad call
-before anything of yours runs.
+**Turn a block or a callable into a real method with an honest signature.** It reports the *body's*
+arity, the *body's* `parameters` and the *body's* `source_location`, and rejects a bad call before
+anything of yours runs.
 
 Zero runtime dependencies. Ruby >= 3.2.
 
