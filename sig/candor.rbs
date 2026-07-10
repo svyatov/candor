@@ -21,6 +21,7 @@ module Candor
     ?aliases: Array[Symbol],
     ?via: Symbol?,
     ?parameters: Array[Signature::parameter]?,
+    ?source_location: [ String, Integer ]?,
     ?body: body?
   ) ?{ (?) -> untyped } -> Symbol
 

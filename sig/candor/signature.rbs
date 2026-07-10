@@ -15,6 +15,7 @@ module Candor
     def self.render: (Array[parameter] parameters, name: Symbol, ?via: Symbol?) -> String
     def self.method_name!: (Symbol | String name) -> Symbol
     def self.parameters!: (untyped parameters) -> Array[parameter]
+    def self.source_location!: (untyped source_location) -> [ String, Integer ]
 
     def initialize: (Array[parameter] parameters, Symbol name, ?Symbol? via) -> void
     def source: () -> String

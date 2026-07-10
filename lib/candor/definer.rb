@@ -12,8 +12,8 @@ module Candor
   #
   # @api private
   class Definer
-    # The only bodies +define_method+ accepts. A +#call+ object is not one of them, and converting it
-    # would forge a +source_location+ nobody wrote.
+    # The only bodies +define_method+ accepts. A +#call+ object is not one of them, and no
+    # +source_location:+ rescues it: the refusal is about the kind, not the location.
     BODY_KINDS = [Proc, Method, UnboundMethod].freeze
 
     # @param target [Module] the module the method is installed onto
@@ -21,13 +21,15 @@ module Candor
     # @param aliases [Array<Symbol>] further names sharing the one dispatch
     # @param via [Symbol, nil] an interceptor method on +target+, resolved per call
     # @param parameters [Array<Array>, nil] an explicit shape, overriding the body's
+    # @param source_location [Array(String, Integer), nil] a location, overriding the body's
     # @param body [Proc, Method, UnboundMethod]
-    def initialize(target, name, aliases:, via:, parameters:, body:)
+    def initialize(target, name, aliases:, via:, parameters:, source_location:, body:)
       @target = target
       @canonical = name.to_sym
       @names = [@canonical, *aliases.map(&:to_sym)].uniq
       @via = via
       @parameters = parameters
+      @source_location = source_location
       @body = body
       @body_name = Candor.body_name(@canonical)
     end
@@ -56,6 +58,7 @@ module Candor
       raise TypeError, "target must be a Module, got #{@target.inspect}" unless @target.is_a?(Module)
 
       validate_body!
+      validate_location!
       validate_names!
       # Both call-site names are interpolated into `eval`'d source. Without `via` the body's own name is
       # the call site, so the canonical name has to survive being one.
@@ -64,19 +67,36 @@ module Candor
       raise FrozenError.new("can't fabricate a method on frozen #{@target}", receiver: @target) if @target.frozen?
     end
 
-    # +source_location+ is the one reliable discriminator: Ruby exposes no +curried?+ predicate, and a
-    # curried proc, a symbol-to-proc and a C-defined method all report +nil+. R5 cannot be honoured for
-    # any of them, and honouring R5 is the product.
-    #
     # @return [void]
     # @raise [TypeError]
     def validate_body!
-      raise TypeError, body_error unless BODY_KINDS.any? { |kind| @body.is_a?(kind) }
-      raise TypeError, body_error if @body.source_location.nil?
+      raise TypeError, kind_error unless BODY_KINDS.any? { |kind| @body.is_a?(kind) }
       return unless @body.is_a?(Method) || @body.is_a?(UnboundMethod)
       # `define_method` would raise this itself — after the prior wrapper was already removed.
       raise TypeError, "#{@body.owner} is not an ancestor of #{@target}" unless @target <= @body.owner
     end
+
+    # A body's +source_location+ is the one reliable discriminator: Ruby exposes no +curried?+ predicate,
+    # and a curried proc, a symbol-to-proc and a C-defined method all report +nil+. Honouring the body's
+    # location is the product, so a body carrying none is refused — unless the caller names one, which is
+    # the caller assuming responsibility for the honesty. A caller that *rewrites* a location has to be
+    # able to: a wrapper whose body is a proc literal the caller generated should point at what the user
+    # wrote, not at the generator.
+    #
+    # {Signature.compile} gates the location it is handed, but a shape read from the compiled body only
+    # reaches that gate once the body is installed. So an overridden location is gated here too, exactly
+    # as {Signature.method_name!} is: the compiler owns the rule, and the pipeline pays it early enough
+    # that a rejected fabrication still leaves the target untouched.
+    #
+    # @return [void]
+    # @raise [TypeError, ArgumentError]
+    def validate_location!
+      Signature.source_location!(@source_location) if @source_location
+      raise TypeError, no_location_error if location.nil?
+    end
+
+    # @return [Array(String, Integer), nil] the location the fabricated method will report
+    def location = @source_location || @body.source_location
 
     # @return [void]
     # @raise [ArgumentError]
@@ -88,9 +108,19 @@ module Candor
     end
 
     # @return [String]
-    def body_error
+    def kind_error
       "body must be a block, a Proc, a Method or an UnboundMethod with a source_location, " \
-        "got #{@body.inspect}; curried procs, `#call` objects and C-defined methods have none"
+        "got #{@body.inspect}; a `#call` object is none of them, and no source_location: rescues it"
+    end
+
+    # Separate from {kind_error} because the remedy differs. Only a body +define_method+ accepts reaches
+    # this, so naming a location really is the fix — where a +#call+ object is refused for its kind, and
+    # naming one buys it nothing.
+    #
+    # @return [String]
+    def no_location_error
+      "#{@body.inspect} carries no source_location: curried procs, symbol-to-procs and C-defined " \
+        "methods have none, so fabricating from one takes an explicit source_location:"
     end
 
     # +define_method+ replaces a method in place, so a re-fabrication is never observable as a missing
@@ -123,8 +153,7 @@ module Candor
     # @return [Proc] the dispatch lambda
     # @raise [ArgumentError] if the shape does not render to legal source
     def compile(shape)
-      Signature.compile(shape, name: @via ? @canonical : @body_name, via: @via,
-                               source_location: @body.source_location)
+      Signature.compile(shape, name: @via ? @canonical : @body_name, via: @via, source_location: location)
     end
 
     # @param dispatch [Proc]

@@ -79,7 +79,20 @@ class DefinerTest < CandorTest
   def test_a_c_defined_method_body_is_refused
     error = assert_raises(TypeError) { Candor.define(target, :puts, body: method(:puts)) }
 
-    assert_match(/curried procs, `#call` objects and C-defined methods have none/, error.message)
+    assert_match(/curried procs, symbol-to-procs and C-defined methods have none/, error.message)
+  end
+
+  # A `#call` object is refused for its kind, so the advice the location-less bodies get would be a dead
+  # end here: `define_method` never takes one, at any location.
+  def test_a_call_object_body_is_refused_and_no_source_location_rescues_it
+    callable = Object.new
+    def callable.call(name) = name
+
+    error = assert_raises(TypeError) do
+      Candor.define(target, :greet, source_location: ["/nowhere.rb", 1], body: callable)
+    end
+
+    refute_match(/takes an explicit source_location/, error.message)
   end
 
   def test_a_missing_body_is_refused
@@ -173,6 +186,52 @@ class DefinerTest < CandorTest
     assert_equal 0, target.instance_method(:catalog).arity
     assert_equal 1, target.new.catalog
     assert_raises(ArgumentError) { target.new.catalog(2) }
+  end
+
+  # Location override. A caller whose body is a proc it generated needs to point the wrapper at what the
+  # user wrote instead, or the gem's one promise reads as a lie about the caller's own source.
+
+  def test_a_source_location_override_is_what_every_name_reports
+    location = ["/nowhere/initializer.rb", 42]
+    Candor.define(target, :greet, aliases: [:hello], via: :__call, source_location: location) { |a| a }
+
+    assert_equal location, target.instance_method(:greet).source_location
+    assert_equal location, target.instance_method(:hello).source_location
+    assert_equal :bob, target.new.greet(:bob)
+  end
+
+  # The override is the caller assuming responsibility for the honesty, so it also rescues the bodies
+  # refused above — and only those the caller can honestly place.
+  def test_a_source_location_override_fabricates_from_a_body_that_has_none
+    Candor.define(target, :up, parameters: [%i[req a]], source_location: ["/nowhere.rb", 1], body: :upcase.to_proc)
+
+    assert_equal "HI", target.new.up("hi")
+  end
+
+  # Without a shape override the shape is read from the *installed* body, so the compile that forges the
+  # location runs after the first mutation. A location-less body has to survive that path too — it is the
+  # one a consumer takes whenever it overrides the location but not the shape.
+  def test_a_source_location_override_fabricates_from_a_body_that_has_none_without_a_shape_override
+    Candor.define(target, :up, source_location: ["/nowhere.rb", 1], body: :upcase.to_proc)
+
+    assert_equal ["/nowhere.rb", 1], target.instance_method(:up).source_location
+    assert_equal "HI", target.new.up("hi")
+  end
+
+  # `eval` refuses a line outside a C `int`, and it would refuse it from inside the compile above — with
+  # the body already installed. So the range is part of the shape, not a detail of the renderer.
+  def test_a_malformed_source_location_is_refused_before_the_body_is_installed
+    malformed = ["nowhere.rb", ["nowhere.rb"], ["nowhere.rb", "1"], [1, "nowhere.rb"], [],
+                 ["nowhere.rb", 1, 2], ["nowhere.rb", 2**31], ["nowhere.rb", -(2**31) - 1]]
+
+    malformed.each do |location|
+      error = assert_raises(ArgumentError, location.inspect) do
+        Candor.define(target, :greet, source_location: location) { :hi }
+      end
+
+      assert_match(/malformed source_location/, error.message)
+    end
+    assert_empty target.private_instance_methods(false).grep(/\A#{Candor::BODY_PREFIX}/)
   end
 
   # Visibility and naming.

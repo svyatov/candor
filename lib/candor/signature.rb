@@ -70,12 +70,16 @@ module Candor
     # Names Ruby reserves for the numbered block parameters; +->(_1: 1) {}+ is a +SyntaxError+.
     NUMBERED_PARAMETERS = (1..9).map { |i| "_#{i}" }.freeze
 
+    # The line numbers +eval+ takes: its +lineno+ is a C +int+, and one outside this range is a
+    # +RangeError+ from inside {compile} rather than an +ArgumentError+ from its gate.
+    LINE_RANGE = (-(2**31))...(2**31)
+
     # How the source is spelled, and what the two name gates happen to be spelled as. A consumer builds
-    # against {compile}, {method_name!} and {parameters!} — which raise — not against the patterns and
-    # tables they are written in terms of. Only {KINDS} and {KEYWORD_BRANCH_LIMIT} name something a
-    # caller has to know to use the compiler, so only those two stay public.
+    # against {compile}, {method_name!}, {parameters!} and {source_location!} — which raise — not against
+    # the patterns and tables they are written in terms of. Only {KINDS} and {KEYWORD_BRANCH_LIMIT} name
+    # something a caller has to know to use the compiler, so only those two stay public.
     private_constant :RESERVED_WORDS, :NAMED_KINDS, :OPTIONAL_KINDS, :SUFFIXES, :DECLARATIONS,
-                     :METHOD_NAME, :KEYWORD_NAME, :NUMBERED_PARAMETERS
+                     :METHOD_NAME, :KEYWORD_NAME, :NUMBERED_PARAMETERS, :LINE_RANGE
 
     class << self
       # +eval+'s file and line forge the lambda's — and therefore the compiled method's —
@@ -87,9 +91,10 @@ module Candor
       # @param source_location [Array(String, Integer)] the body's
       # @param via [Symbol, nil] an interceptor method taking +(name, ...)+; omit to call +name+ directly
       # @return [Proc] a lambda taking the body's parameter kinds and forwarding to the call site
-      # @raise [ArgumentError] if the call site's name or the parameter shape is malformed
+      # @raise [ArgumentError] if the call site's name, the parameter shape or the location is malformed
       def compile(parameters, name:, source_location:, via: nil)
-        eval(render(parameters, name: name, via: via), binding, *source_location) # rubocop:disable Security/Eval
+        source = render(parameters, name: name, via: via)
+        eval(source, binding, *source_location!(source_location)) # rubocop:disable Security/Eval
       rescue SyntaxError => e
         # {parameters!} sees one entry at a time; only the parser sees the combination — two rests, a
         # duplicate keyword, a block before a positional. A +SyntaxError+ is a +ScriptError+, which a
@@ -137,6 +142,23 @@ module Candor
         raise ArgumentError, "malformed parameters: entry #{index} is #{parameters[index].inspect}" if index
 
         parameters
+      end
+
+      # Unlike the two gates above, the location is never interpolated into the generated source: +eval+
+      # takes it as a file and a line, not as code. So this is a shape check rather than a trust boundary
+      # — with one edge that bites. +eval+'s line is a C +int+, and one outside {LINE_RANGE} raises
+      # +RangeError+ from inside {compile}. A consumer reading a shape off an already-installed body only
+      # reaches that compile after installing it, so the range is checked here, where it is still cheap.
+      #
+      # @param source_location [Array(String, Integer)]
+      # @return [Array(String, Integer)] the location
+      # @raise [ArgumentError] unless it is a [String, Integer] pair whose line +eval+ will take
+      def source_location!(source_location)
+        file, line = source_location if source_location.is_a?(Array) && source_location.size == 2
+        return source_location if file.is_a?(String) && line.is_a?(Integer) && LINE_RANGE.cover?(line)
+
+        raise ArgumentError, "malformed source_location: #{source_location.inspect}; " \
+                             "expected a [String, Integer] pair, the line within #{LINE_RANGE}"
       end
 
       private
