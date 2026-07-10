@@ -1,6 +1,4 @@
-# Candor
-
-[![Gem Version](https://img.shields.io/gem/v/candor)](https://rubygems.org/gems/candor) [![Codecov](https://img.shields.io/codecov/c/github/svyatov/candor)](https://app.codecov.io/gh/svyatov/candor) [![CI](https://github.com/svyatov/candor/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/svyatov/candor/actions?query=workflow%3ACI)
+# Candor [![Gem Version](https://img.shields.io/gem/v/candor)](https://rubygems.org/gems/candor) [![Codecov](https://img.shields.io/codecov/c/github/svyatov/candor)](https://app.codecov.io/gh/svyatov/candor) [![CI](https://github.com/svyatov/candor/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/svyatov/candor/actions?query=workflow%3ACI)
 
 **Turn a block or a callable into a real method with an honest signature.** It reports the *body's*
 arity, the *body's* `parameters` and the *body's* `source_location`, and rejects a bad call before
