@@ -102,13 +102,26 @@ dispatch = Candor::Signature.compile(parameters, name: :greet, via: :__call, sou
 klass.define_method(:greet, &dispatch)
 ```
 
+`compile` gates all three of its inputs. `method_name!`, `parameters!` and `source_location!` are public
+for a consumer that wants to fail earlier than the compile does.
+
 ## The contract
 
 **Body kinds.** A block, a `Proc`, a `Method` or an `UnboundMethod`, the three things `define_method`
-takes. A `#call` object is rejected. So is any body whose `source_location` is `nil`: a curried proc, a
-`Symbol#to_proc`, a C-defined method. Ruby exposes no `curried?` predicate, and a nil `source_location`
-is the one reliable discriminator. Without it the honest-`source_location` guarantee cannot be kept.
-Inside a block body, `self` is the receiver.
+takes. A `#call` object is rejected, and no `source_location:` rescues it: the refusal is about the kind.
+So is any body whose `source_location` is `nil`: a curried proc, a `Symbol#to_proc`, a C-defined method.
+Ruby exposes no `curried?` predicate, and a nil `source_location` is the one reliable discriminator.
+Without it the honest-`source_location` guarantee cannot be kept. An explicit `source_location:` is the
+one way to fabricate from those three, and it is the caller taking responsibility for the honesty the gem
+otherwise derives. Inside a block body, `self` is the receiver.
+
+**Location override.** `source_location:` is what every fabricated name reports, in place of the body's.
+A caller whose body is a proc it generated on the user's behalf points the wrapper at what the user
+actually wrote, rather than at the generator:
+
+```ruby
+Candor.define(App, :fetch, source_location: user_block.source_location, body: proc { ... })
+```
 
 **Reserved prefix.** Compiled bodies are private methods named `#{Candor::BODY_PREFIX}#{name}`.
 Fabricating a name that starts with the prefix raises `ArgumentError`.
@@ -136,11 +149,13 @@ method in place rather than removing and reinstalling it, so a caller racing a `
 the old method or the new one, never a `NoMethodError`.
 
 **Failing fast.** A frozen target raises `FrozenError`, an `UnboundMethod` whose owner is not an
-ancestor of the target raises `TypeError`, and a malformed `parameters:` or an uncallable `via:` raises
-`ArgumentError`, all *before* the target is touched. A rejected fabrication leaves the target exactly
-as it was. A hand-written `parameters:` never passed Ruby's parser, so it is compiled before the first
-mutation: a shape whose *combination* is illegal (two rests, a duplicate keyword) is an `ArgumentError`
-too. Nothing ever surfaces as a `SyntaxError` from inside `eval`, which a `rescue` would not catch.
+ancestor of the target raises `TypeError`, and a malformed `parameters:`, a malformed `source_location:`
+or an uncallable `via:` raises `ArgumentError`, all *before* the target is touched. A `source_location:`
+is malformed unless it is a `[String, Integer]` pair whose line `eval` will take. A rejected fabrication
+leaves the target exactly as it was. A hand-written `parameters:` never passed Ruby's parser, so it is
+compiled before the first mutation: a shape whose *combination* is illegal (two rests, a duplicate
+keyword) is an `ArgumentError` too. Nothing ever surfaces as a `SyntaxError` from inside `eval`, which a
+`rescue` would not catch.
 
 **A Ruby 3.4 wrinkle.** On 3.4 alone, a body written with the implicit `it` parameter receives its
 arguments packed into an Array when it is reached through `(name, ...)` forwarding, `send`, or a splat,

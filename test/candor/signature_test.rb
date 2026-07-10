@@ -418,6 +418,36 @@ class SignatureTest < CandorTest
     assert_match(/malformed parameters: :nope/, error.message)
   end
 
+  # The location is never interpolated into the source, so its gate is a shape check. `eval`'s line is a
+  # C `int` all the same, and one it will not take must be an ArgumentError here rather than a RangeError
+  # from inside `compile`.
+  def test_a_location_that_is_not_a_file_and_line_pair_is_refused
+    malformed = ["nowhere.rb", ["nowhere.rb"], ["nowhere.rb", "1"], [1, "nowhere.rb"], [], nil,
+                 ["nowhere.rb", 1, 2], ["nowhere.rb", 1.0], ["nowhere.rb", 2**31], ["nowhere.rb", -(2**31) - 1]]
+
+    malformed.each do |location|
+      error = assert_raises(ArgumentError, location.inspect) { Candor::Signature.source_location!(location) }
+
+      assert_match(/malformed source_location/, error.message)
+    end
+  end
+
+  def test_a_line_eval_will_take_is_accepted_to_its_boundaries
+    [1, 0, -(2**31), (2**31) - 1].each do |line|
+      assert_equal ["nowhere.rb", line], Candor::Signature.source_location!(["nowhere.rb", line])
+    end
+  end
+
+  # `compile` gates its own location, so a consumer installing dispatch itself cannot forge one `eval`
+  # refuses — nor one it silently accepts as a file named `"nowhere.rb"` with no line at all.
+  def test_compile_refuses_a_malformed_location_rather_than_forging_one
+    error = assert_raises(ArgumentError) do
+      Candor::Signature.compile([%i[req a]], name: :greet, source_location: "nowhere.rb")
+    end
+
+    assert_match(/malformed source_location/, error.message)
+  end
+
   # The keyword names are interpolated verbatim, so a hand-written shape could otherwise inject source.
   def test_a_keyword_name_that_is_not_an_identifier_raises_before_rendering
     [:"a; puts 1", :"a-b", :"", :_1, :"end:"].each do |name|

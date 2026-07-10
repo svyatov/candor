@@ -40,17 +40,21 @@ module Candor
     # @param via [Symbol, nil] an interceptor method on +target+, resolved per call
     # @param parameters [Array<Array>, nil] an explicit shape advertised instead of the body's; not
     #   validated against the body, so a mismatch surfaces as the body's own +ArgumentError+
+    # @param source_location [Array(String, Integer), nil] a location reported instead of the body's, for
+    #   a caller whose body is a proc it generated on the user's behalf; also the only way to fabricate
+    #   from a body carrying no location of its own
     # @param body [Proc, Method, UnboundMethod, nil] the body, when it is not given as a block
     # @yield the body, when it is not given as +body+; +self+ inside it is the receiver
     # @return [Symbol] the canonical name
     # @raise [TypeError] if +target+ is not a Module, or the body is neither a block, a Proc, a Method
-    #   nor an UnboundMethod, or its +source_location+ is +nil+, or its owner is not an ancestor of
-    #   +target+
+    #   nor an UnboundMethod, or neither it nor +source_location+ carries a location, or the body's owner
+    #   is not an ancestor of +target+
     # @raise [ArgumentError] if a name starts with {BODY_PREFIX}, or +via+ is not a callable method
-    #   name, or +parameters+ is malformed
+    #   name, or +parameters+ or +source_location+ is malformed
     # @raise [FrozenError] if +target+ is frozen
-    def define(target, name, aliases: [], via: nil, parameters: nil, body: nil, &block)
-      Definer.new(target, name, aliases: aliases, via: via, parameters: parameters, body: body || block).call
+    def define(target, name, aliases: [], via: nil, parameters: nil, source_location: nil, body: nil, &block)
+      Definer.new(target, name, aliases: aliases, via: via, parameters: parameters,
+                                source_location: source_location, body: body || block).call
     end
 
     # The private method holding a fabricated method's body. An interceptor calls it with +send+.
