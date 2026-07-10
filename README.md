@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/svyatov/candor/branch/main/graph/badge.svg)](https://codecov.io/gh/svyatov/candor)
 
 **Ruby's missing `functools.wraps`.** Turn a block or a callable into a real method that reports the
-*body's* arity, the *body's* `parameters` and the *body's* `source_location` — and rejects a bad call
+*body's* arity, the *body's* `parameters` and the *body's* `source_location`, and rejects a bad call
 before anything of yours runs.
 
 Zero runtime dependencies. Ruby >= 3.2.
@@ -25,13 +25,13 @@ Greeter.new.greet("bob", grating: "yo")          # => ArgumentError: unknown key
 
 Ruby gives you no way to hand a generated wrapper the signature of the callable it wraps.
 `define_method` accepts only a `Proc`, a `Method` or an `UnboundMethod`, so a wrapper's arity has to
-come from an object that already has it — and the only source of such an object is a literal parameter
+come from an object that already has it. The only source of such an object is a literal parameter
 list, hand-typed or generated as text.
 
 So libraries that wrap user-supplied callables retreat to `|*args, **kwargs, &block|`. The results are
-right; the reflection lies. `arity` is `-1`, `parameters` reads `[[:rest], [:keyrest], [:block]]`, a
-wrong-arity call blows up one frame too deep — inside the wrapper, where the library's own error
-handling can swallow it — and every call allocates an Array and a Hash.
+right; the reflection lies. `arity` is `-1`, `parameters` reads `[[:rest], [:keyrest], [:block]]`, and a
+wrong-arity call blows up one frame too deep: inside the wrapper, where the library's own error
+handling can swallow it. Every call allocates an Array and a Hash.
 
 Candor generates the parameter list as source and `eval`s it, once, at definition time. There is no
 degraded fallback: every shape Ruby can express wraps at full fidelity, including `end:`, `it`, `_1`,
@@ -61,7 +61,7 @@ Formatter.new.pad("x", 3)  # => "x  "
 
 `via:` names a method on the target, resolved per call. Every call routes to it and to it alone. It
 receives the canonical name and the arguments exactly as passed, and reaches the body through
-`Candor.body_name`, so it can also choose *not* to run it — memoize, instrument, short-circuit.
+`Candor.body_name`, so it can also choose *not* to run it: memoize, instrument, short-circuit.
 
 ```ruby
 class Memo
@@ -77,7 +77,7 @@ end
 Candor.define(Memo, :catalog, parameters: [], via: :__call) { Catalog.build }
 ```
 
-A wrong-arity call raises at the wrapper, before `__call` is ever entered — so an interceptor that
+A wrong-arity call raises at the wrapper, before `__call` is ever entered, so an interceptor that
 rescues broadly never sees a caller's mistake as a body's failure. An alias left behind by an *earlier*
 fabrication is the exception: it keeps the wrapper it was built with, so its gate is that fabrication's
 signature and not the current body's. See [Re-fabrication](#the-contract).
@@ -104,11 +104,11 @@ klass.define_method(:greet, &dispatch)
 
 ## The contract
 
-**Body kinds.** A block, a `Proc`, a `Method` or an `UnboundMethod` — the three things `define_method`
+**Body kinds.** A block, a `Proc`, a `Method` or an `UnboundMethod`, the three things `define_method`
 takes. A `#call` object is rejected. So is any body whose `source_location` is `nil`: a curried proc, a
 `Symbol#to_proc`, a C-defined method. Ruby exposes no `curried?` predicate, and a nil `source_location`
-is the one reliable discriminator — without it the honest-`source_location` guarantee cannot be kept, and
-that guarantee is the product. Inside a block body, `self` is the receiver.
+is the one reliable discriminator. Without it the honest-`source_location` guarantee cannot be kept.
+Inside a block body, `self` is the receiver.
 
 **Reserved prefix.** Compiled bodies are private methods named `#{Candor::BODY_PREFIX}#{name}`.
 Fabricating a name that starts with the prefix raises `ArgumentError`.
@@ -117,8 +117,8 @@ Fabricating a name that starts with the prefix raises `ArgumentError`.
 optional positionals left to right, so `n` of them have `n + 1` states, enumerated as call sites rather
 than accumulated into an Array. Optional keywords are independent, so `n` of them would cost `2**n` call
 sites; past `Candor::Signature::KEYWORD_BRANCH_LIMIT` (2) they go through one Hash instead, and
-dispatch allocates exactly one Hash per call. That shape — three or more optional keywords — is the one
-case where candor is slower than the variadic wrapper it replaces. It is measured, and accepted.
+dispatch allocates exactly one Hash per call. That shape, three or more optional keywords, is the one
+case where candor is slower than the variadic wrapper it replaces. It is measured and accepted.
 
 Those counts are what the *wrapper* adds. A body that declares a **keyrest** (`**kw`) costs Ruby one Hash
 to capture it and one to re-splat it into the body, on any wrapper you could write by hand; candor adds
@@ -137,15 +137,15 @@ the old method or the new one, never a `NoMethodError`.
 
 **Failing fast.** A frozen target raises `FrozenError`, an `UnboundMethod` whose owner is not an
 ancestor of the target raises `TypeError`, and a malformed `parameters:` or an uncallable `via:` raises
-`ArgumentError` — all *before* the target is touched. A rejected fabrication leaves the target exactly
+`ArgumentError`, all *before* the target is touched. A rejected fabrication leaves the target exactly
 as it was. A hand-written `parameters:` never passed Ruby's parser, so it is compiled before the first
-mutation: a shape whose *combination* is illegal — two rests, a duplicate keyword — is an `ArgumentError`
+mutation: a shape whose *combination* is illegal (two rests, a duplicate keyword) is an `ArgumentError`
 too. Nothing ever surfaces as a `SyntaxError` from inside `eval`, which a `rescue` would not catch.
 
 **A Ruby 3.4 wrinkle.** On 3.4 alone, a body written with the implicit `it` parameter receives its
-arguments packed into an Array when it is reached through `(name, ...)` forwarding, `send`, or a splat —
-the shape an interceptor is usually written in. Candor's own generated call sites name every
-argument, so direct-forward mode is unaffected; fixed in Ruby 4.0, and `_1` and named parameters never
+arguments packed into an Array when it is reached through `(name, ...)` forwarding, `send`, or a splat,
+which is the shape an interceptor is usually written in. Candor's own generated call sites name every
+argument, so direct-forward mode is unaffected. Ruby 4.0 fixes it, and `_1` and named parameters never
 had it.
 
 **Re-fabrication.** Redefining a name overwrites candor's own prior wrapper and body in place, so a
@@ -168,23 +168,25 @@ optional-argument rows carry a few percent of noise.
 | three optional keywords | 251 ns · 1 alloc | 99 ns · 0 | 46 ns · 0 | 185 ns · 2 |
 
 - **hand-written wrapper** is the ceiling: a real `def` with the same signature forwarding to the same
-  private body, with the defaults hard-coded — what you would write by hand if you knew the shape *and*
-  the default expressions. Candor is within ~10–40% of it, and allocates the same nothing.
+  private body, with the defaults hard-coded. It is what you would write by hand if you knew the shape
+  *and* the default expressions. Candor is within ~10–40% of it, and allocates the same nothing.
 - **bare method** is a single `def` doing the work inline. It is roughly twice as fast as any wrapper,
   because it is one method call rather than two. That is the price of wrapping at all, not of candor.
 - **variadic wrapper** is the `|*args, **kwargs, &block|` retreat: slower than candor on every shape
   below the keyword branch limit, faster on the hashed one, and dishonest about its signature everywhere.
 
-Definition time is ~40 µs per fabricated method — one `eval` — against ~1.3 µs for a bare
+Definition time is ~40 µs per fabricated method (one `eval`) against ~1.3 µs for a bare
 `define_method`. It runs once, at boot.
 
 ## What it is not
 
 Candor routes calls. It does not rescue, memoize, delegate or instrument; it is the method-fabrication
-layer those features stand on. It does not recover an optional's default expression — that is
+layer those features stand on. It does not recover an optional's default expression; that is
 [permanently closed upstream](https://bugs.ruby-lang.org/issues/8629), and dropping the unpassed optional
-so the body defaults is the semantics that replaces it. Fabricated methods are not Ractor-shareable, and
-the gem needs `eval`, so it does not run on eval-restricted platforms.
+so the body defaults is the semantics that replaces it.
+
+Definition must happen on the main Ractor. Calling a fabricated method from a non-main Ractor raises, as
+it does for any `define_method`-installed `Proc`, unless both the dispatch and the body are shareable.
 
 ## Contributing
 
