@@ -1,0 +1,28 @@
+# Turns a block or a callable into a real method with an honest signature.
+#
+# Fabricated methods are compiled at runtime, so RBS cannot see them. Declare the ones you rely on in
+# your own `sig/`.
+#
+# These files declare the public API and nothing else. `Candor::Definer` and the compiler's internal
+# constants are `private_constant` in Ruby, and RBS has no syntax for that — declaring them here would
+# advertise a surface that raises NameError on use.
+module Candor
+  VERSION: String
+
+  # Prefix of the private methods holding compiled bodies.
+  BODY_PREFIX: String
+
+  # A body `define_method` accepts, with a `source_location` to forge onto the wrapper.
+  type body = Proc | Method | UnboundMethod
+
+  def self.define: (
+    Module target,
+    Symbol name,
+    ?aliases: Array[Symbol],
+    ?via: Symbol?,
+    ?parameters: Array[Signature::parameter]?,
+    ?body: body?
+  ) ?{ (?) -> untyped } -> Symbol
+
+  def self.body_name: (Symbol name) -> Symbol
+end

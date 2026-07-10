@@ -1,0 +1,22 @@
+module Candor
+  # Compiles a method's `parameters` into a dispatch lambda with the same parameter kinds, and
+  # therefore the same `arity`. Switches on the kind, never the name.
+  class Signature
+    # Every kind `Method#parameters` can emit, and the only ones `render` accepts.
+    KINDS: Array[Symbol]
+
+    # How many optional keywords still dispatch through call sites rather than a Hash.
+    KEYWORD_BRANCH_LIMIT: Integer
+
+    # One entry of `Method#parameters`: a kind, and a name the body may not have given.
+    type parameter = [ Symbol ] | [ Symbol, Symbol ]
+
+    def self.compile: (Array[parameter] parameters, name: Symbol, source_location: [ String, Integer ], ?via: Symbol?) -> Proc
+    def self.render: (Array[parameter] parameters, name: Symbol, ?via: Symbol?) -> String
+    def self.method_name!: (Symbol | String name) -> Symbol
+    def self.parameters!: (untyped parameters) -> Array[parameter]
+
+    def initialize: (Array[parameter] parameters, Symbol name, ?Symbol? via) -> void
+    def source: () -> String
+  end
+end

@@ -1,0 +1,51 @@
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.ruby_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby_version: [ruby-head, "4.0", "3.4", "3.3", "3.2"]
+
+    env:
+      COVERAGE: true
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: rm -f Gemfile.lock
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby_version }}
+          bundler-cache: true
+        continue-on-error: ${{ matrix.ruby_version == 'ruby-head' }}
+
+      - run: bundle exec rake
+        continue-on-error: ${{ matrix.ruby_version == 'ruby-head' }}
+
+      - name: Documentation coverage
+        run: bundle exec rake yard:stats
+        if: ${{ matrix.ruby_version == '4.0' }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: svyatov/candor
+        if: ${{ matrix.ruby_version == '4.0' }}

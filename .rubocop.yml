@@ -1,0 +1,55 @@
+plugins:
+  - rubocop-minitest
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 120
+
+# Fabricating a method is a pipeline of small validated steps; splitting `define` further would hide
+# the order the steps must run in, which is the invariant.
+Metrics/AbcSize:
+  Exclude:
+    - "lib/candor/definer.rb"
+    - "test/**/*"
+
+Metrics/MethodLength:
+  Max: 15
+  Exclude:
+    - "test/**/*"
+
+Metrics/BlockLength:
+  Exclude:
+    - "benchmark/**/*"
+    - "test/**/*"
+
+# `Signature` is one renderer plus the trust-boundary checks its `eval` needs. Splitting the checks
+# into a second class would hide that they are what gates the rendering.
+Metrics/ClassLength:
+  Exclude:
+    - "lib/candor/signature.rb"
+    - "test/**/*"
+
+# A keyword argument is named at the call site; counting it against a positional list is noise.
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+Minitest/MultipleAssertions:
+  Max: 20
+
+Style/SymbolProc:
+  AllowedMethods:
+    - respond_to
+    - define_method
