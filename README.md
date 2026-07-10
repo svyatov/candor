@@ -1,5 +1,9 @@
 # Candor
 
+[![Gem Version](https://img.shields.io/gem/v/candor)](https://rubygems.org/gems/candor)
+[![CI](https://github.com/svyatov/candor/actions/workflows/main.yml/badge.svg)](https://github.com/svyatov/candor/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/svyatov/candor/branch/main/graph/badge.svg)](https://codecov.io/gh/svyatov/candor)
+
 **Ruby's missing `functools.wraps`.** Turn a block or a callable into a real method that reports the
 *body's* arity, the *body's* `parameters` and the *body's* `source_location` — and rejects a bad call
 before anything of yours runs.
@@ -181,6 +185,11 @@ layer those features stand on. It does not recover an optional's default express
 [permanently closed upstream](https://bugs.ruby-lang.org/issues/8629), and dropping the unpassed optional
 so the body defaults is the semantics that replaces it. Fabricated methods are not Ractor-shareable, and
 the gem needs `eval`, so it does not run on eval-restricted platforms.
+
+## Contributing
+
+Bug reports and pull requests are welcome on [GitHub](https://github.com/svyatov/candor). See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
