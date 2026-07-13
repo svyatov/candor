@@ -75,9 +75,9 @@ module Candor
     LINE_RANGE = (-(2**31))...(2**31)
 
     # How the source is spelled, and what the two name gates happen to be spelled as. A consumer builds
-    # against {compile}, {method_name!}, {parameters!} and {source_location!} — which raise — not against
-    # the patterns and tables they are written in terms of. Only {KINDS} and {KEYWORD_BRANCH_LIMIT} name
-    # something a caller has to know to use the compiler, so only those two stay public.
+    # against {compile}, {render}, {method_name!}, {parameters!} and {source_location!} — which raise — not
+    # against the patterns and tables they are written in terms of. Only {KINDS} and {KEYWORD_BRANCH_LIMIT}
+    # name something a caller has to know to use the compiler, so only those two stay public.
     private_constant :RESERVED_WORDS, :NAMED_KINDS, :OPTIONAL_KINDS, :SUFFIXES, :DECLARATIONS,
                      :METHOD_NAME, :KEYWORD_NAME, :NUMBERED_PARAMETERS, :LINE_RANGE
 

@@ -153,6 +153,23 @@ compiled before the first mutation: a shape whose *combination* is illegal (two 
 keyword) is an `ArgumentError` too. Nothing ever surfaces as a `SyntaxError` from inside `eval`, which a
 `rescue` would not catch.
 
+**The `eval`.** The one `eval` runs at definition time, never per call, and never on anything a caller
+passes at runtime. Its source is rendered off the parameter *kinds*, not their names: every positional,
+rest, keyrest and block name becomes a generated one, so the only user text that survives into the source
+is a keyword name — checked before it is rendered, and unable to shadow the lambda's own locals, which all
+carry a run-of-underscores prefix no keyword name starts with. The two call-site names — the body's, or
+`via:` — pass `method_name!` first, so a reserved word or anything `eval` would not call bare raises
+`ArgumentError` before a character is compiled. You can read exactly what it will run: `Signature.render`
+returns the source `compile` would `eval`, without evaluating it.
+
+```ruby
+Candor::Signature.render([%i[req a]], name: :greet, via: :__call)
+# => "__u = ::Object.new.freeze; ->(__p0) { __call(:greet, __p0) }"
+
+Candor::Signature.render([[:req, :name], [:key, :greeting]], name: Candor.body_name(:greet))
+# => "__u = ::Object.new.freeze; ->(__p0, greeting: __u) { __u.equal?(greeting) ? __candor_body_greet(__p0) : __candor_body_greet(__p0, greeting: greeting) }"
+```
+
 **A Ruby 3.4 wrinkle.** On 3.4 alone, a body written with the implicit `it` parameter receives its
 arguments packed into an Array when it is reached through `(name, ...)` forwarding, `send`, or a splat,
 which is the shape an interceptor is usually written in. Candor's own generated call sites name every
