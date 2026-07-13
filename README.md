@@ -35,9 +35,12 @@ degraded fallback: every shape Ruby can express wraps at full fidelity, includin
 
 ## Install
 
-```ruby
-gem "candor"
+```sh
+bundle add candor
 ```
+
+Or drop `gem "candor"` into your Gemfile, or `gem install candor` without Bundler. API docs:
+[rubydoc.info/gems/candor](https://rubydoc.info/gems/candor).
 
 ## Use
 
@@ -99,14 +102,16 @@ klass.define_method(:greet, &dispatch)
 ```
 
 `compile` gates all three of its inputs. `method_name!`, `parameters!` and `source_location!` are public
-for a consumer that wants to fail earlier than the compile does.
+for a consumer that wants to fail earlier than the compile does. `Candor::Signature::KINDS` is the frozen
+list of the eight parameter kinds `Method#parameters` can emit, and the only ones `parameters!` and
+`compile` accept.
 
 ## The contract
 
 **Body kinds.** A block, a `Proc`, a `Method` or an `UnboundMethod`, the three things `define_method`
-takes. A `#call` object is rejected, and no `source_location:` rescues it: the refusal is about the kind.
-So is any body whose `source_location` is `nil`: a curried proc, a `Symbol#to_proc`, a C-defined method.
-Ruby exposes no `curried?` predicate, and a nil `source_location` is the one reliable discriminator.
+takes. A `#call` object raises `TypeError`, and no `source_location:` rescues it: the refusal is about the
+kind. So does any body whose `source_location` is `nil`: a curried proc, a `Symbol#to_proc`, a C-defined
+method. Ruby exposes no `curried?` predicate, and a nil `source_location` is the one reliable discriminator.
 Without it the honest-`source_location` guarantee cannot be kept. An explicit `source_location:` is the
 one way to fabricate from those three, and it is the caller taking responsibility for the honesty the gem
 otherwise derives. Inside a block body, `self` is the receiver.
@@ -144,14 +149,15 @@ serialize. Call-time dispatch takes no lock at all, and never needs one: re-fabr
 method in place rather than removing and reinstalling it, so a caller racing a `Candor.define` gets
 the old method or the new one, never a `NoMethodError`.
 
-**Failing fast.** A frozen target raises `FrozenError`, an `UnboundMethod` whose owner is not an
-ancestor of the target raises `TypeError`, and a malformed `parameters:`, a malformed `source_location:`
-or an uncallable `via:` raises `ArgumentError`, all *before* the target is touched. A `source_location:`
-is malformed unless it is a `[String, Integer]` pair whose line `eval` will take. A rejected fabrication
-leaves the target exactly as it was. A hand-written `parameters:` never passed Ruby's parser, so it is
-compiled before the first mutation: a shape whose *combination* is illegal (two rests, a duplicate
-keyword) is an `ArgumentError` too. Nothing ever surfaces as a `SyntaxError` from inside `eval`, which a
-`rescue` would not catch.
+**Failing fast.** Every check runs *before* the target is touched, so a rejected fabrication leaves it
+exactly as it was. A frozen target raises `FrozenError`. A non-Module target, a body that is none of the
+three kinds or carries no location, and a `Method` or `UnboundMethod` whose owner is not an ancestor of
+the target all raise `TypeError`. A name under the reserved prefix, a malformed `parameters:`, a malformed
+`source_location:` or an uncallable `via:` raises `ArgumentError`. A `source_location:` is malformed
+unless it is a `[String, Integer]` pair whose line `eval` will take. A hand-written `parameters:` never
+passed Ruby's parser, so it is compiled before the first mutation: a shape whose *combination* is illegal
+(two rests, a duplicate keyword) is an `ArgumentError` too. Nothing ever surfaces as a `SyntaxError` from
+inside `eval`, which a `rescue` would not catch.
 
 **The `eval`.** The one `eval` runs at definition time, never per call, and never on anything a caller
 passes at runtime. Its source is rendered off the parameter *kinds*, not their names: every positional,
