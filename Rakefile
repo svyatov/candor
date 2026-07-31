@@ -38,12 +38,22 @@ task :bench do
   ruby "benchmark/dispatch_bench.rb"
 end
 
-# `rake release` pushes to RubyGems, which requires an MFA OTP. Feed it a fresh code from
-# 1Password via GEM_HOST_OTP_CODE, which `gem push` reads.
-Rake::Task["release:rubygem_push"].enhance(["fetch_otp"])
+# Publishing moved to .github/workflows/release.yml, where rubygems.org mints a short-lived token
+# through OIDC for that workflow and the `release` environment alone. No API key exists here to use.
+# Leaving `rake release` able to push would keep a second route open, and a second route is the one
+# that gets taken when the gate is inconvenient, so it fails loudly instead.
+Rake::Task["release:rubygem_push"].clear
+task "release:rubygem_push" do
+  abort <<~MSG
+    Publishing runs in CI, not from a developer machine.
 
-task :fetch_otp do
-  ENV["GEM_HOST_OTP_CODE"] = `op item get "RubyGems" --account my --otp`.strip
+    Bump Candor::VERSION, add the CHANGELOG.md section, merge, then:
+
+      git tag -s v#{Candor::VERSION} -m "v#{Candor::VERSION}"
+      git push origin v#{Candor::VERSION}
+
+    That triggers .github/workflows/release.yml and waits for approval on the `release` environment.
+  MSG
 end
 
 task default: %i[rubocop rbs test]
