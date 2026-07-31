@@ -1,0 +1,37 @@
+name: Feature request
+description: Propose a change to what candor does or exposes
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Candor's surface is deliberately small: `Candor.define`, `Candor.body_name` and
+        `Candor::Signature`. The README's "What it is not" section lists what the gem has already
+        decided against, so start there.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: >-
+        The situation you hit, not the API you want. A concrete case is what decides whether this
+        belongs in candor or in the code calling it.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Why the current API cannot do it
+      description: >-
+        Show what you tried. If it fails, paste the error; if it works but costs something, say what.
+      render: ruby
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would expect instead
+      description: >-
+        Sketch the call and its result. Say whether it changes any existing behaviour, since candor
+        is pre-1.0 and a break still needs to be worth it.
+    validations:
+      required: true
