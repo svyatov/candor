@@ -3,15 +3,11 @@
 if ENV["COVERAGE"]
   require "simplecov"
 
-  if ENV["CI"]
-    require "simplecov_json_formatter"
-    SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
-  end
+  # The JSON formatter is what Codecov reads; the HTML report CI would otherwise build is thrown away.
+  SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter if ENV["CI"]
 
-  SimpleCov.start do
-    add_filter "/test/"
-    minimum_coverage 100
-  end
+  # `test/` is filtered by the `test_frameworks` profile SimpleCov loads by default.
+  SimpleCov.start { minimum_coverage 100 }
 end
 
 require "minitest/autorun"
