@@ -29,19 +29,19 @@ bundle exec rake bench                                     # dispatch benchmarks
 ## Tests
 
 `Rake::TestTask#warning` defaults to true, so the suite runs under `-w`. A warning is a failure waiting
-to happen — a redefinition the gem should have avoided, a shape Ruby dislikes — so keep the output clean
+to happen: a redefinition the gem should have avoided, or a shape Ruby dislikes. Keep the output clean
 rather than learning to scroll past it. Where a test *deliberately* feeds Ruby source written to be
 rejected, wrap it in `capture_io` and say so in a comment.
 
 Coverage is 100%, enforced by `COVERAGE=1 bundle exec rake test`. Note what it does not buy you: SimpleCov
 measures **lines**, and a `case` branch such as `when :keyrest then ...` counts as covered the moment the
 `when` executes, even when its body never runs. A dispatch bug lived behind exactly that for the whole of
-0.1.0's development. Line coverage is a floor, not a proof — assert the behaviour.
+0.1.0's development. Line coverage is a floor, not a proof. Assert the behaviour.
 
 Two properties are cheap to assert wrongly:
 
 **Allocation counts.** Disable the GC and diff `GC.stat(:total_allocated_objects)`, and warm both the
-branch under test *and* the measuring method — its own first execution allocates a cache. See
+branch under test *and* the measuring method, whose own first execution allocates a cache. See
 `test_helper.rb`. The counts differ per Ruby: a `define_method`-created method is charged for arguments
 crossing into it before 3.3 (keywords) and before 3.4 (a splatted `**hash`). Gate an exact count on the
 version, or express it through `KEYWORD_HOP` / `SPLAT_HOP`.
@@ -55,7 +55,7 @@ creeps back in.
 ## Types
 
 `sig/` declares the **public API and nothing else**. `Candor::Definer`, the global `MONITOR` and the
-compiler's spelling constants are all `private_constant`, and RBS has no syntax for that — a declaration
+compiler's spelling constants are all `private_constant`, and RBS has no syntax for that. A declaration
 would advertise a surface that raises `NameError` on use.
 
 `bundle exec rake rbs` runs `rbs validate`, which checks that the signatures parse and resolve. It does
