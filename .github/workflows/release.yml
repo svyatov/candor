@@ -27,7 +27,13 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: false
 
+      # `bundler-cache: true` would enable deployment mode for us, but a restored cache is exactly
+      # what this workflow must not have. Frozen mode is the half worth keeping: it installs what
+      # Gemfile.lock records or fails, rather than quietly re-resolving before a publish.
       - run: bundle install
+        env:
+          BUNDLE_FROZEN: "true"
+
       - run: bundle exec rake
 
   build:
