@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
-# No Bundler cache anywhere in this workflow, including the test job. A restored cache is a
-# cache-poisoning vector in a workflow that can authenticate to rubygems.org, and a release is rare
-# enough that the lost cache costs nothing.
+# `bundler-cache: true` would enable Bundler's deployment mode, but it also restores a cache, which
+# is a poisoning vector in a workflow that can authenticate to rubygems.org. Setting frozen mode
+# here keeps the half worth keeping: every `bundle install` below installs what Gemfile.lock
+# records or fails, and none of them restores anything.
+env:
+  BUNDLE_FROZEN: "true"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -27,13 +31,7 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: false
 
-      # `bundler-cache: true` would enable deployment mode for us, but a restored cache is exactly
-      # what this workflow must not have. Frozen mode is the half worth keeping: it installs what
-      # Gemfile.lock records or fails, rather than quietly re-resolving before a publish.
       - run: bundle install
-        env:
-          BUNDLE_FROZEN: "true"
-
       - run: bundle exec rake
 
   build:
@@ -103,26 +101,20 @@ jobs:
           gem push "pkg/candor-${GITHUB_REF_NAME#v}.gem" \
             --attestation "pkg/candor-${GITHUB_REF_NAME#v}.gem.sigstore.json"
 
-  # A separate job on purpose. The build job must not hold release-asset writes or an attestation
-  # identity, and `needs: [publish]` is what keeps the attached assets behind the approval gate.
+  # The release carries notes and nothing else. The gem is on rubygems.org, which serves the
+  # sigstore attestation the publish job pushed, so a copy attached here would be a second
+  # artifact to verify with no second thing proved. It also has to hold `contents: write`, so
+  # `needs: [publish]` keeps even that behind the approval gate.
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [publish]
     permissions:
       contents: write
-      id-token: write
-      attestations: write
-      artifact-metadata: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: built-gem
-          path: pkg/
 
       - name: Take the release body from CHANGELOG.md
         run: |
@@ -133,23 +125,11 @@ jobs:
             File.write("RELEASE_NOTES.md", "#{section.strip}\n")
           '
 
-      # sha256sum runs from inside pkg/ so the names it records are the names the assets carry on
-      # the release. A manifest listing pkg/candor-x.y.z.gem cannot be checked against a download.
-      - name: Write the checksum manifest
-        run: (cd pkg && sha256sum *) > SHA256SUMS
-
-      # subject-checksums makes every file listed a subject in its own right, by name and digest.
-      # Attesting SHA256SUMS itself would let a consumer verify the manifest and nothing it lists.
-      - uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
-        with:
-          subject-checksums: SHA256SUMS
-
       - name: Publish the release
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes-file RELEASE_NOTES.md \
             --verify-tag
-          gh release upload "$GITHUB_REF_NAME" pkg/* SHA256SUMS
         env:
           GH_TOKEN: ${{ github.token }}
