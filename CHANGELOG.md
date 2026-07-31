@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 No change to the library.
 
-The gem now ships from a tagged CI run through RubyGems trusted publishing. This release and every later one carries a sigstore attestation. The GitHub release attaches the built gem beside a checksum manifest with build provenance.
+The gem now ships from a tagged CI run through RubyGems trusted publishing. This release and every later one carries a sigstore attestation, which rubygems.org serves at `https://rubygems.org/api/v1/attestations/candor-0.2.1.json`.
 
 ## [0.2.0] - 2026-07-10
 
