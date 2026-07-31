@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-31
+
+No change to the library.
+
+The gem now ships from a tagged CI run through RubyGems trusted publishing. This release and every later one carries a sigstore attestation. The GitHub release attaches the built gem beside a checksum manifest with build provenance.
+
 ## [0.2.0] - 2026-07-10
 
 ### Added
@@ -21,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Fabrication is thread-safe through one global `Monitor`; call-time dispatch takes no lock and never needs one. Re-fabricating a name overwrites the wrapper and the body in place, so it is warning-free under `ruby -w`, leaves no orphaned body, and a concurrent caller sees the old method or the new one, never a `NoMethodError`. A frozen target, an unbindable `Method`/`UnboundMethod` body, a name under the reserved `Candor::BODY_PREFIX`, an uncallable `via:` and a malformed `parameters:` all raise before the target is touched.
 - `sig/` ships RBS for the public API: `Candor.define`, `Candor.body_name`, `BODY_PREFIX`, and `Candor::Signature` with `KINDS` and `KEYWORD_BRANCH_LIMIT`. Everything else is `private_constant`, which RBS cannot express and therefore does not declare.
 
-[Unreleased]: https://github.com/svyatov/candor/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/svyatov/candor/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/svyatov/candor/releases/tag/v0.2.1
 [0.2.0]: https://github.com/svyatov/candor/releases/tag/v0.2.0
 [0.1.0]: https://github.com/svyatov/candor/releases/tag/v0.1.0
