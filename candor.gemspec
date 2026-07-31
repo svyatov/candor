@@ -8,7 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors = ["Leonid Svyatov"]
   spec.email = ["leonid@svyatov.com"]
 
-  spec.summary = "Turn a block or a callable into a real method with an honest signature."
+  spec.summary = "Turn a block or a callable into a real Ruby method that reports the body's own " \
+                 "arity, parameters and source location."
   spec.description = "Candor fabricates real methods from blocks and " \
                      "callables: same arity, same parameters, source_location pointing at your code, and " \
                      "allocation-free dispatch. Zero runtime dependencies."

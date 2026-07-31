@@ -1,17 +1,33 @@
 # Candor [![Gem Version](https://img.shields.io/gem/v/candor)](https://rubygems.org/gems/candor) [![Codecov](https://img.shields.io/codecov/c/github/svyatov/candor)](https://app.codecov.io/gh/svyatov/candor) [![CI](https://github.com/svyatov/candor/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/svyatov/candor/actions?query=workflow%3ACI)
 
-**Turn a block or a callable into a real method with an honest signature.** It reports the *body's*
-arity, the *body's* `parameters` and the *body's* `source_location`, and rejects a bad call before
-anything of yours runs.
+Turn a block or a callable into a real Ruby method that reports the body's own arity, parameters and
+source location.
 
-Zero runtime dependencies. Ruby >= 3.2.
+- **Zero runtime dependencies.** Ruby 3.2 or newer and nothing else. Tested on 3.2, 3.3, 3.4, 4.0 and
+  `ruby-head`.
+- **Every shape Ruby can express.** All eight parameter kinds wrap at full fidelity, including `end:`,
+  `it`, `_1`, `**nil` and destructuring. There is no degraded fallback.
+- **Faster than the `|*args, **kwargs|` wrapper it replaces.** 52 ns and zero allocations per call
+  against 122 ns and two, on the no-argument shape. Full table below.
+- **RBS signatures shipped.** `sig/` declares the public API, and the test suite pins it against the
+  code in both directions.
+
+## Install
+
+```sh
+bundle add candor
+```
+
+Or drop `gem "candor"` into your Gemfile, or run `gem install candor` without Bundler.
+
+Then, anywhere in your code:
 
 ```ruby
 Candor.define(Greeter, :greet) { |name, greeting: "hi"| "#{greeting}, #{name}" }
 
 Greeter.instance_method(:greet).arity            # => -2
 Greeter.instance_method(:greet).parameters       # => [[:req, :__p0], [:key, :greeting]]
-Greeter.instance_method(:greet).source_location  # => ["app/greeter.rb", 3]  ← the block, not the gem
+Greeter.instance_method(:greet).source_location  # => ["app/greeter.rb", 3]  the block, not the gem
 
 Greeter.new.greet                                # => ArgumentError: wrong number of arguments (given 0, expected 1)
 Greeter.new.greet("bob", grating: "yo")          # => ArgumentError: unknown keyword: :grating
@@ -32,15 +48,6 @@ handling can swallow it. Every call allocates an Array and a Hash.
 Candor generates the parameter list as source and `eval`s it, once, at definition time. There is no
 degraded fallback: every shape Ruby can express wraps at full fidelity, including `end:`, `it`, `_1`,
 `**nil`, and destructuring parameters.
-
-## Install
-
-```sh
-bundle add candor
-```
-
-Or drop `gem "candor"` into your Gemfile, or `gem install candor` without Bundler. API docs:
-[rubydoc.info/gems/candor](https://rubydoc.info/gems/candor).
 
 ## Use
 
@@ -222,10 +229,21 @@ so the body defaults is the semantics that replaces it.
 Definition must happen on the main Ractor. Calling a fabricated method from a non-main Ractor raises, as
 it does for any `define_method`-installed `Proc`, unless both the dispatch and the body are shareable.
 
+## Status and support
+
+Candor is maintained. It is pre-1.0, so the API can still change between minor versions, and only the
+latest release gets fixes.
+
+Ask a question or report a bug in [GitHub issues](https://github.com/svyatov/candor/issues). Report a
+security problem privately through the
+[advisory form](https://github.com/svyatov/candor/security/advisories/new) instead, as
+[SECURITY.md](SECURITY.md) describes.
+
 ## Contributing
 
-Bug reports and pull requests are welcome on [GitHub](https://github.com/svyatov/candor). See
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the setup and test commands, and
+states what an acceptable change has to satisfy. [CHANGELOG.md](CHANGELOG.md) records what changed in
+each release, and the API docs are at [rubydoc.info/gems/candor](https://rubydoc.info/gems/candor).
 
 ## License
 
