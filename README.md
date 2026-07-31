@@ -169,10 +169,10 @@ inside `eval`, which a `rescue` would not catch.
 **The `eval`.** The one `eval` runs at definition time, never per call, and never on anything a caller
 passes at runtime. Its source is rendered off the parameter *kinds*, not their names: every positional,
 rest, keyrest and block name becomes a generated one, so the only user text that survives into the source
-is a keyword name — checked before it is rendered, and unable to shadow the lambda's own locals, which all
-carry a run-of-underscores prefix no keyword name starts with. The two call-site names — the body's, or
-`via:` — pass `method_name!` first, so a reserved word or anything `eval` would not call bare raises
-`ArgumentError` before a character is compiled. You can read exactly what it will run: `Signature.render`
+is a keyword name. That name is checked before it is rendered, and it cannot shadow the lambda's own
+locals, which all carry a run-of-underscores prefix no keyword name starts with. The two call-site names,
+the body's or `via:`, pass `method_name!` first, so a reserved word or anything `eval` would not call bare
+raises `ArgumentError` before a character is compiled. You can read exactly what it will run: `Signature.render`
 returns the source `compile` would `eval`, without evaluating it.
 
 ```ruby
@@ -210,7 +210,7 @@ optional-argument rows carry a few percent of noise.
 
 - **hand-written wrapper** is the ceiling: a real `def` with the same signature forwarding to the same
   private body, with the defaults hard-coded. It is what you would write by hand if you knew the shape
-  *and* the default expressions. Candor is within ~10–40% of it, and allocates the same nothing.
+  *and* the default expressions. Candor is within ~10-40% of it, and allocates the same nothing.
 - **bare method** is a single `def` doing the work inline. It is roughly twice as fast as any wrapper,
   because it is one method call rather than two. That is the price of wrapping at all, not of candor.
 - **variadic wrapper** is the `|*args, **kwargs, &block|` retreat: slower than candor on every shape
