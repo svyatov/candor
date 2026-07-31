@@ -3,6 +3,29 @@
 `bundle exec rake` runs RuboCop, `rbs validate` and the tests. It must be green on every supported Ruby
 (3.2 through 4.0) before a pull request.
 
+## Setup
+
+```sh
+git clone https://github.com/svyatov/candor.git
+cd candor
+bundle install
+bundle exec rake
+```
+
+Candor has no runtime dependencies, so `bundle install` is pulling in development tools only: RuboCop,
+Minitest, RBS, YARD, SimpleCov and benchmark-ips. Ruby 3.2 or newer is the only prerequisite.
+
+Useful subsets of the default task:
+
+```sh
+bundle exec rake test TEST=test/candor/signature_test.rb   # one file
+bundle exec rake test TESTOPTS="--name=/re_fabrication/"   # one test
+COVERAGE=1 bundle exec rake test                           # enforce 100% line coverage
+bundle exec rake rbs                                       # sig/ parses and resolves
+bundle exec rake yard:stats                                # public API is 100% documented
+bundle exec rake bench                                     # dispatch benchmarks
+```
+
 ## Tests
 
 `Rake::TestTask#warning` defaults to true, so the suite runs under `-w`. A warning is a failure waiting
@@ -58,7 +81,32 @@ So: keep `sig/` small, and change it in the same commit as the code it describes
 
 ## Commits and pull requests
 
-Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+Fork the repository, branch off `main`, and open a pull request against `main`. Commit messages follow
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). One logical change per pull
+request; a refactor bundled with a fix costs the review twice.
 
-Before opening a pull request: `bundle exec rake` is green on every supported Ruby, coverage is 100%, and
-`CHANGELOG.md`'s `## Unreleased` section reflects the net user-facing change.
+A change that adds or alters functionality arrives with a test. That is not a review preference, it is
+the only way the suite can tell the difference: candor's whole subject is what a fabricated method
+*reports*, and no existing assertion covers a shape nobody has written one for.
+
+A contribution is acceptable when all of these hold:
+
+- `bundle exec rake` is green on 3.2, 3.3, 3.4 and 4.0
+- `COVERAGE=1 bundle exec rake test` reports 100% line coverage
+- `bundle exec rake yard:stats` reports the public API 100% documented
+- the style rules in [`.rubocop.yml`](.rubocop.yml) pass, including the per-file exclusions and the
+  reasons written above them
+- `sig/` changed in the same commit as any public API it describes
+- `CHANGELOG.md`'s `## Unreleased` section reflects the net user-facing change
+
+CI checks the first three on every supported Ruby. The last three are what review is for.
+
+## Governance
+
+Candor has one maintainer, [Leonid Svyatov](https://github.com/svyatov), who reviews and merges every
+change and publishes every release. Decisions are his; there is no committee and no vote.
+
+There is no succession arranged. If he stops maintaining the gem, the repository is either transferred
+to someone who volunteers to take it or archived with a notice in the README, and the RubyGems
+name stays reserved either way. Nobody else currently holds push access or a publishing credential,
+so plan around that if you are deciding whether to depend on candor.

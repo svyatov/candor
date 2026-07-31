@@ -1,0 +1,58 @@
+name: Bug report
+description: A fabricated method behaves differently from what the README says it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Candor renders a parameter list to source and `eval`s it, so what a fabricated method does
+        depends entirely on the shape of the body it was fabricated from. The exact `Candor.define`
+        call is the reproduction; a description of it usually is not.
+
+        If the report is about a security boundary, do not file it here. Use the
+        [private advisory form](https://github.com/svyatov/candor/security/advisories/new) instead.
+  - type: input
+    id: candor-version
+    attributes:
+      label: Candor version
+      description: From `gem list candor`, or the commit SHA if you installed from git.
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: input
+    id: ruby-version
+    attributes:
+      label: Ruby version
+      description: >-
+        Paste the full output of `ruby -v`. The implementation matters as much as the number:
+        candor is tested on MRI 3.2 through 4.0, and JRuby and TruffleRuby are not tested at all.
+      placeholder: ruby 3.4.1 (2024-12-25 revision 48d4efcb85) +PRISM [arm64-darwin24]
+    validations:
+      required: true
+  - type: textarea
+    id: define-call
+    attributes:
+      label: The Candor.define call
+      description: >-
+        Verbatim, including `via:`, `parameters:`, `aliases:` and `source_location:` if you passed
+        them. If the body comes from somewhere else, show how it was built.
+      render: ruby
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you called, and what it should have done
+      description: >-
+        The call you made against the fabricated method, and what `arity`, `parameters`,
+        `source_location` or the return value should have been. Quote the README where it says so.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: The full error and backtrace, or the wrong value you got.
+      render: text
+    validations:
+      required: true
