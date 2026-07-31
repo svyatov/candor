@@ -17,6 +17,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Ruby ${{ matrix.ruby_version }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -26,11 +27,11 @@ jobs:
       COVERAGE: true
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - run: rm -f Gemfile.lock
-
-      - uses: ruby/setup-ruby@v1
+      # A committed Gemfile.lock makes `bundler-cache: true` install in deployment mode, so this
+      # resolves exactly what the lockfile records or fails.
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: ${{ matrix.ruby_version }}
           bundler-cache: true
@@ -44,7 +45,7 @@ jobs:
         if: ${{ matrix.ruby_version == '4.0' }}
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: svyatov/candor

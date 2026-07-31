@@ -1,0 +1,27 @@
+version: 2
+
+updates:
+  # Every `uses:` line is pinned to a commit SHA, which freezes it until something unfreezes it.
+  # This entry is that something: it rewrites both the SHA and the version comment when a new
+  # release ships. Without it, pinning ruby/setup-ruby would eventually cost a supported Ruby.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Development dependencies only; candor has no runtime dependencies. The lockfile is committed,
+  # so an update here is what moves it.
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore"
+    groups:
+      development:
+        patterns: ["*"]
