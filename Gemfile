@@ -16,6 +16,6 @@ gem "rbs", "~> 4.1", require: false
 
 gem "yard", "~> 0.9", require: false
 
-gem "simplecov", "~> 1.0", require: false
+gem "simplecov", "~> 1.1", require: false
 
 gem "benchmark-ips", "~> 2.14", require: false
