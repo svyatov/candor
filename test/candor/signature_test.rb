@@ -128,7 +128,7 @@ class SignatureTest < CandorTest
 
     assert_equal [1, 2], harness.x
     assert_equal [1, 5], harness.x(k: 5)
-    assert_equal [4, 1], harness.x(j: 4, k: 1)
+    assert_equal [4, 2], harness.x(j: 4)
     assert_equal [4, 5], harness.x(j: 4, k: 5)
   end
 
