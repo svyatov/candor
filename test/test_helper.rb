@@ -31,6 +31,9 @@ class CandorTest < Minitest::Test
     nil
   end
 
+  # `it` names the first block parameter only from Ruby 3.4; before that it parses as a method call.
+  IMPLICIT_PARAMETER = ruby?("3.4")
+
   # Every kind `Method#parameters` can emit, one body each. The table is the spec, and
   # SignatureTest#test_the_table_covers_every_parameter_kind is what keeps it one. ReflectionTest slices
   # the hostile rows out of it rather than restating them, so the two cannot drift apart.
@@ -51,14 +54,11 @@ class CandorTest < Minitest::Test
     "|&b|" => proc { |&b| b },
     "|a, **nil|" => shape("proc { |a, **nil| a }"),
     "|a, (b, c)|" => proc { |a, (b, c)| [a, b, c] },
-    "{ it }" => shape("proc { it }"),
+    "{ it }" => IMPLICIT_PARAMETER ? shape("proc { it }") : nil,
     "{ _1 }" => shape("proc { _1 }"),
     "|end: 5|" => shape("proc { |end: 5| binding.local_variable_get(:end) }"),
     "|a, b = 2, *r, k:, j: 8, **kw, &blk|" => proc { |a, b = 2, *r, k:, j: 8, **kw, &blk| [a, b, r, k, j, kw, blk] }
   }.compact.freeze
-
-  # `it` names the first block parameter only from Ruby 3.4; before that it parses as a method call.
-  IMPLICIT_PARAMETER = ruby?("3.4")
 
   # Splatting a `**hash` into a `define_method`-created method allocates an extra Hash before Ruby 3.4.
   # Below the keyword branch limit the generated call site names its keywords, avoiding this cost.
