@@ -3,7 +3,7 @@
 Turn a block or a callable into a real Ruby method that reports the body's own arity, parameters and
 source location.
 
-- **Zero runtime dependencies.** Ruby 3.2 or newer and nothing else. Tested on 3.2, 3.3, 3.4, 4.0 and
+- **Zero runtime dependencies.** Ruby 3.3 or newer and nothing else. Tested on 3.3, 3.4, 4.0 and
   `ruby-head`.
 - **Every shape Ruby can express.** All eight parameter kinds wrap at full fidelity, including `end:`,
   `it`, `_1`, `**nil` and destructuring. There is no degraded fallback.
@@ -146,10 +146,9 @@ to capture it and one to re-splat it into the body, on any wrapper you could wri
 none of its own, because past the branch limit the captured keyrest *is* the Hash the keywords accumulate
 into.
 
-Exactly as stated from **Ruby 3.4**. Below that, Ruby itself charges a `define_method`-created method for
-arguments crossing into it, and both the wrapper and the body are ones: on 3.3 the hashed path costs one
-Hash more, and on 3.2 a keyword-carrying call costs one Hash per hop. Nothing in the gem can reach that,
-and no call that carries no keyword ever allocates, on any supported Ruby.
+Exactly as stated from **Ruby 3.4**. On Ruby 3.3, passing a splatted `**hash` into a
+`define_method`-created method costs one extra Hash, so the hashed path allocates one more object.
+Nothing in the gem can reach that, and no call that carries no keyword ever allocates, on any supported Ruby.
 
 **Thread safety.** Fabrication takes one global `Monitor`; concurrent `Candor.define` calls
 serialize. Call-time dispatch takes no lock at all, and never needs one: re-fabrication replaces a

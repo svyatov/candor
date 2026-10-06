@@ -92,10 +92,9 @@ class ConcurrencyTest < CandorTest
   # Allocation (R12, AE11). Direct-forward only: an interceptor's own `(name, ...)` forwarding allocates
   # one object per argument-carrying call, which is outside the wrapper-scoped guarantee.
   #
-  # The counts are exact, and the `HOP` terms are Ruby's, not the renderer's: a `define_method`-created
-  # method — which both the wrapper and the body are — charged a Hash for incoming keywords before 3.3
-  # and another for an incoming `**hash` before 3.4. Both are zero from 3.4 on, where the guarantee reads
-  # as written: nothing below the branch limit, exactly one Hash above.
+  # The counts are exact. On Ruby 3.3, SPLAT_HOP accounts for the extra Hash Ruby allocates when a
+  # splatted `**hash` enters a `define_method`-created method. From 3.4 on, the guarantee reads as
+  # written: nothing below the branch limit, exactly one Hash above.
 
   def test_dispatch_allocates_nothing_at_or_below_the_keyword_branch_limit
     Candor.define(target, :two) { |k0: 1, k1: 2| k0 & k1 }
@@ -104,8 +103,8 @@ class ConcurrencyTest < CandorTest
 
     # No keyword crosses either hop: both are dropped, and the body applies its own defaults.
     assert_equal(0, allocations { instance.two })
-    assert_equal(2 * KEYWORD_HOP, allocations { instance.two(k0: 9) })
-    assert_equal(2 * KEYWORD_HOP, allocations { instance.two(k0: 9, k1: 8) })
+    assert_equal(0, allocations { instance.two(k0: 9) })
+    assert_equal(0, allocations { instance.two(k0: 9, k1: 8) })
     assert_equal(0, allocations { instance.positional(:a) })
     assert_equal(0, allocations { instance.positional(:a, :b) })
   end
@@ -117,8 +116,8 @@ class ConcurrencyTest < CandorTest
     instance = target.new
 
     assert_equal(1 + SPLAT_HOP, allocations { instance.three })
-    assert_equal(1 + SPLAT_HOP + KEYWORD_HOP, allocations { instance.three(k1: 9) })
-    assert_equal(1 + SPLAT_HOP + KEYWORD_HOP, allocations { instance.three(k0: 9, k1: 8, k2: 7) })
+    assert_equal(1 + SPLAT_HOP, allocations { instance.three(k1: 9) })
+    assert_equal(1 + SPLAT_HOP, allocations { instance.three(k0: 9, k1: 8, k2: 7) })
   end
 
   # A body declaring a keyrest costs Ruby one Hash to capture it and one to re-splat it into the body — on any

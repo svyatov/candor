@@ -1,7 +1,7 @@
 # Contributing
 
 `bundle exec rake` runs RuboCop, `rbs validate` and the tests. It must be green on every supported Ruby
-(3.2 through 4.0) before a pull request.
+(3.3 through 4.0) before a pull request.
 
 ## Setup
 
@@ -13,7 +13,7 @@ bundle exec rake
 ```
 
 Candor has no runtime dependencies, so `bundle install` is pulling in development tools only: RuboCop,
-Minitest, RBS, YARD, SimpleCov and benchmark-ips. Ruby 3.2 or newer is the only prerequisite.
+Minitest, RBS, YARD, SimpleCov and benchmark-ips. Ruby 3.3 or newer is the only prerequisite.
 
 Useful subsets of the default task:
 
@@ -43,8 +43,8 @@ Two properties are cheap to assert wrongly:
 **Allocation counts.** Disable the GC and diff `GC.stat(:total_allocated_objects)`, and warm both the
 branch under test *and* the measuring method, whose own first execution allocates a cache. See
 `test_helper.rb`. The counts differ per Ruby: a `define_method`-created method is charged for arguments
-crossing into it before 3.3 (keywords) and before 3.4 (a splatted `**hash`). Gate an exact count on the
-version, or express it through `KEYWORD_HOP` / `SPLAT_HOP`.
+crossing into it before 3.4 (a splatted `**hash`). Gate an exact count on the
+version, or express it through `SPLAT_HOP`.
 
 **Races.** MRI preempts on a ~100 ms timer, so a loop short enough to live in a test suite is never
 descheduled inside a window a few microseconds wide. Such a test passes with the bug present and proves
@@ -91,7 +91,7 @@ the only way the suite can tell the difference: candor's whole subject is what a
 
 A contribution is acceptable when all of these hold:
 
-- `bundle exec rake` is green on 3.2, 3.3, 3.4 and 4.0
+- `bundle exec rake` is green on 3.3, 3.4 and 4.0
 - `COVERAGE=1 bundle exec rake test` reports 100% line coverage
 - `bundle exec rake yard:stats` reports the public API 100% documented
 - the style rules in [`.rubocop.yml`](.rubocop.yml) pass, including the per-file exclusions and the
