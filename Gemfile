@@ -9,7 +9,7 @@ gem "rake", "~> 13.4"
 
 gem "minitest", "~> 6.0"
 
-gem "rubocop", "~> 1.91"
+gem "rubocop", "~> 1.92"
 gem "rubocop-minitest", "~> 0.41"
 
 gem "rbs", "~> 4.2", require: false
